@@ -4,7 +4,6 @@ import com.jay.rpc.entity.RpcRequest;
 import com.jay.rpc.handler.RpcDecoder;
 import com.jay.rpc.handler.RpcEncoder;
 import com.jay.rpc.handler.RpcRequestHandler;
-import com.jay.rpc.util.ServiceScanner;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -13,26 +12,28 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
+import org.springframework.stereotype.Component;
+
+import javax.annotation.PostConstruct;
 
 /**
  * <p>
- *
+ *  RPC 服务器
  * </p>
  *
  * @author Jay
  * @date 2021/10/13
  **/
-public class RpcServer {
+@Component
+public class RpcServer implements ApplicationContextAware {
     private NioEventLoopGroup bossGroup = new NioEventLoopGroup(1);
     private NioEventLoopGroup workerGroup = new NioEventLoopGroup();
 
-    private int port;
-    private String servicePackage;
-
-    public RpcServer(int port, String servicePackage) {
-        this.port = port;
-        this.servicePackage = servicePackage;
-    }
+    private int port = 8001;
+    private ApplicationContext context;
 
     private ServerBootstrap init(){
         ServerBootstrap serverBootstrap = new ServerBootstrap();
@@ -46,15 +47,17 @@ public class RpcServer {
                     protected void initChannel(SocketChannel channel) throws Exception {
                         ChannelPipeline pipeline = channel.pipeline();
                         pipeline.addLast(new RpcDecoder(RpcRequest.class));
-                        pipeline.addLast(new RpcRequestHandler());
+                        pipeline.addLast(new RpcRequestHandler(context));
                         pipeline.addLast(new RpcEncoder());
                     }
                 });
-        // 扫描RPC Service
-        ServiceScanner.doScan(servicePackage);
         return serverBootstrap;
     }
 
+    /**
+     * 构造方法后自动启动服务器
+     */
+    @PostConstruct
     public void start(){
         ServerBootstrap serverBootstrap = init();
 
@@ -69,5 +72,21 @@ public class RpcServer {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 提供Spring Bean容器
+     * @param applicationContext appContext
+     * @throws BeansException BeanException
+     */
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        if(applicationContext != null){
+            this.context = applicationContext;
+        }
+    }
+
+    public void setPort(int port) {
+        this.port = port;
     }
 }

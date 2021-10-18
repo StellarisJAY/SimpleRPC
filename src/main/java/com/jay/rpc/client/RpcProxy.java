@@ -7,7 +7,6 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.UUID;
-import java.util.concurrent.Future;
 
 /**
  * <p>
@@ -29,13 +28,6 @@ public class RpcProxy {
                 RpcClient client = new RpcClient("127.0.0.1", 8000);
                 // 创建RPC请求
                 RpcRequest request = new RpcRequest();
-                // 生成UUID
-                request.setRequestId(UUID.randomUUID().toString());
-                // 设置请求类名、方法名、参数列表
-                request.setClassName(clazz.getName());
-                request.setMethodName(method.getName());
-                request.setParameterTypes(method.getParameterTypes());
-                request.setParameters(args);
 
                 // 发送RPC请求，返回future对象
                 RpcResponse response = client.send(request);
