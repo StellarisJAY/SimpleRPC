@@ -1,5 +1,8 @@
 package com.jay.rpc.handler;
 
+import com.jay.rpc.entity.RpcHeader;
+import com.jay.rpc.entity.RpcRequest;
+import com.jay.rpc.entity.RpcResponse;
 import com.jay.rpc.util.SerializationUtil;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -9,38 +12,45 @@ import java.util.List;
 
 /**
  * <p>
- *
+ *      Rpc消息解码器
  * </p>
  *
  * @author Jay
  * @date 2021/10/13
  **/
 public class RpcDecoder extends ByteToMessageDecoder {
-    private Class<?> objectClass;
-    private static final int MIN_BUFFER_SIZE = 4;
-
-    public RpcDecoder(Class<?> objectClass) {
-        this.objectClass = objectClass;
-    }
 
     @Override
     protected void decode(ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf, List<Object> list) throws Exception {
-        // 报文大小是否有4字节
-        if(byteBuf.readableBytes() < MIN_BUFFER_SIZE){
+        // 报文大小是否有16字节
+        if(byteBuf.readableBytes() < RpcHeader.HEADER_SIZE){
             return ;
         }
-
         byteBuf.markReaderIndex();
-        // 读前四个字节的int，作为数据部分长度
-        int dataLength = byteBuf.readInt();
-        // buf剩余部分大于等于数据长度
-        if(dataLength > 0 && byteBuf.readableBytes() >= dataLength){
-            byte[] bytes = new byte[dataLength];
-            byteBuf.readBytes(bytes);
+        short magicNumber = byteBuf.readShort();
+        // 读取到魔数
+        if(magicNumber == RpcHeader.MAGIC){
+            // 读取消息头其他部分
+            int type = byteBuf.readByte();
+            // 状态和id
+            int status = byteBuf.readByte();
+            long id = byteBuf.readLong();
+            // 读取消息体长度
+            int length = byteBuf.readInt();
 
-            // 反序列化数据部分
-            Object request = SerializationUtil.deserialize(bytes, objectClass);
-            list.add(request);
+            // 剩余部分大小为length
+            if(byteBuf.readableBytes() == length){
+                // 读取消息体
+                byte[] buffer = new byte[length];
+                byteBuf.readBytes(buffer);
+
+                // 反序列化消息体
+                switch(type){
+                    case RpcHeader.TYPE_REQUEST : list.add(SerializationUtil.deserialize(buffer, RpcRequest.class)); break;
+                    case RpcHeader.TYPE_RESPONSE : list.add(SerializationUtil.deserialize(buffer, RpcResponse.class)); break;
+                    default: break;
+                }
+            }
         }
     }
 }
