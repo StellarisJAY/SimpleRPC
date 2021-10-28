@@ -34,12 +34,12 @@ public class RpcClient extends SimpleChannelInboundHandler<RpcResponse> {
                 .channel(NioSocketChannel.class)
                 .handler(new ChannelInitializer<SocketChannel>() {
                     @Override
-                    protected void initChannel(SocketChannel socketChannel) throws Exception {
+                    protected void initChannel(SocketChannel socketChannel){
                         ChannelPipeline pipeline = socketChannel.pipeline();
                         // Rpc编码器，将Rpc请求序列化
                         pipeline.addLast(new RpcEncoder());
                         // Rpc解码器，将Rpc返回反序列化
-                        pipeline.addLast(new RpcDecoder(RpcResponse.class));
+                        pipeline.addLast(new RpcDecoder());
                         pipeline.addLast(RpcClient.this);
                     }
                 })
@@ -81,10 +81,9 @@ public class RpcClient extends SimpleChannelInboundHandler<RpcResponse> {
      * 接收到response
      * @param channelHandlerContext 上下文
      * @param rpcResponse response
-     * @throws Exception exception
      */
     @Override
-    protected void channelRead0(ChannelHandlerContext channelHandlerContext, RpcResponse rpcResponse) throws Exception {
+    protected void channelRead0(ChannelHandlerContext channelHandlerContext, RpcResponse rpcResponse){
         this.response = rpcResponse;
         // 通知send
         countDownLatch.countDown();
