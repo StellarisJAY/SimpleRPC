@@ -38,10 +38,10 @@ import java.util.Set;
  * @date 2021/10/13
  **/
 public class RpcServer implements ApplicationContextAware {
-    private NioEventLoopGroup bossGroup = new NioEventLoopGroup(1);
-    private NioEventLoopGroup workerGroup = new NioEventLoopGroup();
+    private final NioEventLoopGroup bossGroup = new NioEventLoopGroup(1);
+    private final NioEventLoopGroup workerGroup = new NioEventLoopGroup();
 
-    private Logger logger = LoggerFactory.getLogger(this.getClass());
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
     @Value("${rpc.service.port}")
     private String port;
 
@@ -104,10 +104,10 @@ public class RpcServer implements ApplicationContextAware {
             // 启动服务器
             ChannelFuture channelFuture = serverBootstrap.bind(Integer.parseInt(port)).sync();
             if(channelFuture.isSuccess()){
-               System.out.println("RPC服务启动成功，服务地址:"+host);
+               logger.info("RPC服务启动成功，服务地址:{}", host);
             }
             else{
-                System.out.println("RPC服务启动失败");
+                logger.info("RPC服务启动失败");
             }
         }catch (KeeperException e){
             logger.error("服务注册异常", e);
@@ -126,13 +126,14 @@ public class RpcServer implements ApplicationContextAware {
         if(applicationContext != null){
             this.context = applicationContext;
             Map<String, Object> serviceImpls = context.getBeansWithAnnotation(RpcService.class);
-            logger.info("是否扫描到RpcService:{}", serviceImpls.isEmpty());
             Set<Map.Entry<String, Object>> entries = serviceImpls.entrySet();
             for (Map.Entry<String, Object> entry : entries) {
                 Object bean = entry.getValue();
                 Class<?>[] interfaces = bean.getClass().getInterfaces();
                 serviceMapper.put(interfaces[0], bean);
             }
+
+            logger.info("接口实现类扫描完成，一共扫描到：{} 个服务实现类Bean", entries.size());
         }
     }
 

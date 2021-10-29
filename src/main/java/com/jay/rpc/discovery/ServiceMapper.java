@@ -6,7 +6,9 @@ import java.util.HashMap;
 
 /**
  * <p>
- *
+ *     服务接口-实现类实例 映射
+ *     因为无法直接通过接口获取到实现类的Bean
+ *     所以在启动时通过扫描带有@RpcService注解的Bean作为实现类，并记录在该Map中
  * </p>
  *
  * @author Jay
@@ -18,7 +20,7 @@ public class ServiceMapper {
      * 记录 接口和实现类的映射
      * HashMap初始大小设为256来避免扩容
      */
-    private HashMap<Class<?>, Object> map = new HashMap<>(256);
+    private final HashMap<Class<?>, Object> map = new HashMap<>(256);
 
     /**
      * 获取服务接口的实现Bean

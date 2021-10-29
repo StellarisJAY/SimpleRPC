@@ -2,7 +2,7 @@ package com.jay.rpc.entity;
 
 /**
  * <p>
- *
+ *  RPC 返回值
  * </p>
  *
  * @author Jay

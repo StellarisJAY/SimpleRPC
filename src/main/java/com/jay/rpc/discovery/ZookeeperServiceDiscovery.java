@@ -10,11 +10,10 @@ import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 /**
  * <p>
- *
+ *   Zookeeper服务发现
  * </p>
  *
  * @author Jay
@@ -27,7 +26,7 @@ public class ZookeeperServiceDiscovery {
 
     private static final String PATH_PREFIX = "/rpc/services";
 
-    private Logger logger = LoggerFactory.getLogger(this.getClass());
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     /**
      * 注册服务

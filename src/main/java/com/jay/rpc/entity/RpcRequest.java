@@ -1,10 +1,9 @@
 package com.jay.rpc.entity;
 
-import java.util.Arrays;
 
 /**
  * <p>
- *
+ *  RPC请求
  * </p>
  *
  * @author Jay
@@ -12,10 +11,13 @@ import java.util.Arrays;
  **/
 public class RpcRequest {
     /**
-     * provider class名称
+     * 服务接口
      */
     private Class<?> targetClass;
 
+    /**
+     * 方法信息
+     */
     private String methodName;
     private Class<?>[] parameterTypes;
     private Object[] parameters;
