@@ -1,10 +1,11 @@
 package com.jay.rpc;
 
+import com.jay.rpc.annotation.RpcService;
+import com.jay.rpc.discovery.ServiceMapper;
 import com.jay.rpc.discovery.ZookeeperServiceDiscovery;
 import com.jay.rpc.handler.RpcDecoder;
 import com.jay.rpc.handler.RpcEncoder;
 import com.jay.rpc.handler.RpcRequestHandler;
-import com.jay.rpc.util.ZkUtil;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -19,15 +20,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.util.concurrent.ExecutionException;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * <p>
@@ -37,12 +37,11 @@ import java.util.concurrent.ExecutionException;
  * @author Jay
  * @date 2021/10/13
  **/
-@Component
 public class RpcServer implements ApplicationContextAware {
-    private NioEventLoopGroup bossGroup = new NioEventLoopGroup(1);
-    private NioEventLoopGroup workerGroup = new NioEventLoopGroup();
+    private final NioEventLoopGroup bossGroup = new NioEventLoopGroup(1);
+    private final NioEventLoopGroup workerGroup = new NioEventLoopGroup();
 
-    private Logger logger = LoggerFactory.getLogger(this.getClass());
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
     @Value("${rpc.service.port}")
     private String port;
 
@@ -52,6 +51,9 @@ public class RpcServer implements ApplicationContextAware {
 
     @Autowired
     private ZookeeperServiceDiscovery serviceDiscovery;
+
+    @Autowired
+    private ServiceMapper serviceMapper;
 
     private ApplicationContext context;
 
@@ -92,23 +94,23 @@ public class RpcServer implements ApplicationContextAware {
         ServerBootstrap serverBootstrap = init();
 
         try {
-            System.out.println("RPC服务启动中...");
+            logger.info("RPC服务启动中...");
             // 获取服务地址
             InetAddress localHost = InetAddress.getLocalHost();
             String host = localHost.getHostAddress() + ":" + port;
             // 注册到Zookeeper
             serviceDiscovery.registerService(applicationName, host);
-            System.out.println("服务注册完成");
+            logger.info("服务注册成功，服务名称：{}", applicationName);
             // 启动服务器
             ChannelFuture channelFuture = serverBootstrap.bind(Integer.parseInt(port)).sync();
             if(channelFuture.isSuccess()){
-               System.out.println("RPC服务启动成功，服务地址:"+host);
+               logger.info("RPC服务启动成功，服务地址:{}", host);
             }
             else{
-                System.out.println("RPC服务启动失败");
+                logger.info("RPC服务启动失败");
             }
         }catch (KeeperException e){
-            System.out.println("服务注册出现异常：" + e.getMessage());
+            logger.error("服务注册异常", e);
         } catch (InterruptedException | IOException e) {
             logger.error("服务器启动出现异常", e);
         }
@@ -123,6 +125,15 @@ public class RpcServer implements ApplicationContextAware {
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         if(applicationContext != null){
             this.context = applicationContext;
+            Map<String, Object> serviceImpls = context.getBeansWithAnnotation(RpcService.class);
+            Set<Map.Entry<String, Object>> entries = serviceImpls.entrySet();
+            for (Map.Entry<String, Object> entry : entries) {
+                Object bean = entry.getValue();
+                Class<?>[] interfaces = bean.getClass().getInterfaces();
+                serviceMapper.put(interfaces[0], bean);
+            }
+
+            logger.info("接口实现类扫描完成，一共扫描到：{} 个服务实现类Bean", entries.size());
         }
     }
 

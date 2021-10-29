@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 
 /**
  * <p>
@@ -94,5 +93,19 @@ public class ZookeeperUtil {
      */
     public boolean checkConnection(){
         return zooKeeper != null && zooKeeper.getState() == ZooKeeper.States.CONNECTED;
+    }
+
+    /**
+     * 列出某路径下的子节点
+     * @param path path
+     * @return List
+     * @throws KeeperException ZookeeperException
+     * @throws InterruptedException Interrupted
+     */
+    public List<String> listChildren(String path) throws KeeperException, InterruptedException {
+        if(!exists(path)){
+            return null;
+        }
+        return zooKeeper.getChildren(path, false);
     }
 }

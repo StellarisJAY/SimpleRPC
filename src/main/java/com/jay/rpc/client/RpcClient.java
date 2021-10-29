@@ -21,12 +21,12 @@ import java.util.concurrent.CountDownLatch;
  * @date 2021/10/13
  **/
 public class RpcClient extends SimpleChannelInboundHandler<RpcResponse> {
-    private NioEventLoopGroup group = new NioEventLoopGroup();
+    private final NioEventLoopGroup group = new NioEventLoopGroup();
     private Bootstrap bootstrap;
-    private String host;
-    private int port;
+    private final String host;
+    private final int port;
 
-    private CountDownLatch countDownLatch = new CountDownLatch(1);
+    private final CountDownLatch countDownLatch = new CountDownLatch(1);
     private RpcResponse response = null;
     private void init(){
         bootstrap = new Bootstrap();
