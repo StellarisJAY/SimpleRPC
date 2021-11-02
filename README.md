@@ -8,7 +8,7 @@
 
 4.1、整合Zookeeper作为服务注册中心 √
 
-4.2、Zookeeper做服务发现
+4.2、Zookeeper做服务发现 √
 
 ## 使用说明   
 
@@ -17,11 +17,11 @@
 #### 导入Maven依赖
 
 ```xml
-		<dependency>
-            <groupId>com.jay</groupId>
-            <artifactId>rpc</artifactId>
-            <version>1.0</version>
-        </dependency>
+<dependency>
+    <groupId>com.jay</groupId>
+    <artifactId>rpc</artifactId>
+    <version>1.0</version>
+</dependency>		
 ```
 
 #### 启动Zookeeper并在配置文件中添加
@@ -62,5 +62,20 @@ public class HelloServiceImpl implements HelloService{
 
 ### 服务调用方（客户端）
 
+同服务端，添加Maven、添加配置、添加@EnableRpc注解。
 
+### 获取代理对象
+
+使用RpcProxy类的create方法创建代理对象，第一个参数为类型，第二个参数为服务提供方的服务名称。
+
+```java
+HelloService service = RpcProxy.create(HelloService.class, "rpcService");
+
+```
+
+调用代理对象的方法将会从Zookeeper找到服务提供方的地址，然后发送RPC请求获取执行结果。
+
+
+
+## 原理简介
 
