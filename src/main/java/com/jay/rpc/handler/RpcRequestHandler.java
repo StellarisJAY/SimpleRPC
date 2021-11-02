@@ -35,8 +35,8 @@ public class RpcRequestHandler extends SimpleChannelInboundHandler<RpcRequest> {
         // 目标类
         Class<?> targetClass = rpcRequest.getTargetClass();
 
-        ServiceMapper serviceMapper = applicationContext.getBean(ServiceMapper.class);
-        Object instance = serviceMapper.getServiceImpl(targetClass);
+
+        Object instance = ServiceMapper.getServiceImpl(targetClass);
         LOGGER.info("已获得服务实现类实例：{}", instance);
         // 从Spring容器获取RPC业务Bean
         RpcResponse response = new RpcResponse();

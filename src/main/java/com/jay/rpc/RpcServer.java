@@ -48,13 +48,6 @@ public class RpcServer implements ApplicationContextAware {
     @Value("${spring.application.name}")
     private String applicationName;
 
-
-    @Autowired
-    private ZookeeperServiceDiscovery serviceDiscovery;
-
-    @Autowired
-    private ServiceMapper serviceMapper;
-
     private ApplicationContext context;
 
     /**
@@ -99,7 +92,7 @@ public class RpcServer implements ApplicationContextAware {
             InetAddress localHost = InetAddress.getLocalHost();
             String host = localHost.getHostAddress() + ":" + port;
             // 注册到Zookeeper
-            serviceDiscovery.registerService(applicationName, host);
+            ZookeeperServiceDiscovery.registerService(applicationName, host);
             logger.info("服务注册成功，服务名称：{}", applicationName);
             // 启动服务器
             ChannelFuture channelFuture = serverBootstrap.bind(Integer.parseInt(port)).sync();
@@ -130,7 +123,7 @@ public class RpcServer implements ApplicationContextAware {
             for (Map.Entry<String, Object> entry : entries) {
                 Object bean = entry.getValue();
                 Class<?>[] interfaces = bean.getClass().getInterfaces();
-                serviceMapper.put(interfaces[0], bean);
+                ServiceMapper.put(interfaces[0], bean);
             }
 
             logger.info("接口实现类扫描完成，一共扫描到：{} 个服务实现类Bean", entries.size());
