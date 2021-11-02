@@ -2,34 +2,43 @@ package com.jay.rpc.util;
 
 import org.apache.zookeeper.*;
 import org.apache.zookeeper.data.ACL;
+import org.apache.zookeeper.data.Stat;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
 /**
  * <p>
- *
+ *  Zookeeper 工具类
+ *  Zookeeper实例采用饿汉式单例
  * </p>
  *
  * @author Jay
  * @date 2021/10/28
  **/
-@Component
 public class ZookeeperUtil {
     /**
      * Zookeeper 实例
      */
-    private ZooKeeper zooKeeper;
+    private static ZooKeeper zooKeeper;
 
-    private static final String PATH_PREFIX = "/rpc/services/";
+    private static String zkHosts;
 
-    @Value("${rpc.service.discovery.zk.hosts}")
-    private String zkHosts;
-    @Value("${rpc.service.discovery.zk.session-timeout}")
-    private int sessionTimeout = 4000;
+    private static int sessionTimeout = 4000;
+
+    static{
+        try {
+            zkHosts = PropertiesUtil.getAttribute("rpc.service.discovery.zk.hosts");
+            sessionTimeout = PropertiesUtil.getIntegerAttribute("rpc.service.discovery.zk.session-timeout");
+            zooKeeper = connect();
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
 
     /**
      * 获取Zookeeper连接
@@ -37,16 +46,13 @@ public class ZookeeperUtil {
      * @throws IOException IOException
      * @throws InterruptedException InterruptedException
      */
-    public ZooKeeper connect() throws IOException, InterruptedException {
-        CountDownLatch countDownLatch = new CountDownLatch(1);
+    public static ZooKeeper connect() throws IOException {
         ZooKeeper zooKeeper = new ZooKeeper(zkHosts, sessionTimeout, (event)->{
             if(event.getState() == Watcher.Event.KeeperState.SyncConnected){
-                countDownLatch.countDown();
+
             }
         });
-        countDownLatch.await();
-        this.zooKeeper = zooKeeper;
-        return this.zooKeeper;
+        return zooKeeper;
     }
 
 
@@ -57,7 +63,7 @@ public class ZookeeperUtil {
      * @throws KeeperException ZookeeperException
      * @throws InterruptedException future
      */
-    public boolean exists(String path) throws KeeperException, InterruptedException {
+    public static boolean exists(String path) throws KeeperException, InterruptedException {
         return zooKeeper.exists(path, false) != null;
     }
 
@@ -70,7 +76,7 @@ public class ZookeeperUtil {
      * @throws KeeperException zkException
      * @throws InterruptedException createException
      */
-    public String createEphemeral(String path, String data, List<ACL> acls) throws KeeperException, InterruptedException {
+    public static String createEphemeral(String path, String data, List<ACL> acls) throws KeeperException, InterruptedException {
         return zooKeeper.create(path, data.getBytes(), acls, CreateMode.EPHEMERAL);
     }
 
@@ -83,7 +89,7 @@ public class ZookeeperUtil {
      * @throws KeeperException zkException
      * @throws InterruptedException createException
      */
-    public String createPersistent(String path, String data, List<ACL> acls) throws KeeperException, InterruptedException {
+    public static String createPersistent(String path, String data, List<ACL> acls) throws KeeperException, InterruptedException {
         return zooKeeper.create(path, data.getBytes(), acls, CreateMode.PERSISTENT);
     }
 
@@ -91,7 +97,7 @@ public class ZookeeperUtil {
      * 获取连接状态
      * @return boolean
      */
-    public boolean checkConnection(){
+    public static boolean checkConnection(){
         return zooKeeper != null && zooKeeper.getState() == ZooKeeper.States.CONNECTED;
     }
 
@@ -102,10 +108,28 @@ public class ZookeeperUtil {
      * @throws KeeperException ZookeeperException
      * @throws InterruptedException Interrupted
      */
-    public List<String> listChildren(String path) throws KeeperException, InterruptedException {
+    public static List<String> listChildren(String path) throws KeeperException, InterruptedException {
         if(!exists(path)){
             return null;
         }
         return zooKeeper.getChildren(path, false);
+    }
+
+    /**
+     * 获取节点数据
+     * @param path 路径
+     * @return String
+     * @throws KeeperException KeeperException
+     * @throws InterruptedException InterruptedException
+     */
+    public static String getData(String path) throws KeeperException, InterruptedException {
+        // 节点状态，不返回
+        Stat stat = new Stat();
+        byte[] data = zooKeeper.getData(path, false, stat);
+        return new String(data, StandardCharsets.UTF_8);
+    }
+
+    public static ZooKeeper getKeeperInstance(){
+        return zooKeeper;
     }
 }

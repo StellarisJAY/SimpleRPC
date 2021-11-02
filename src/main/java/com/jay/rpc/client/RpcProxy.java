@@ -1,9 +1,14 @@
 package com.jay.rpc.client;
 
+import com.jay.rpc.discovery.ZookeeperServiceDiscovery;
 import com.jay.rpc.entity.RpcRequest;
 import com.jay.rpc.entity.RpcResponse;
+import io.netty.util.internal.StringUtil;
+import org.apache.zookeeper.ZKUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Proxy;
 
@@ -20,17 +25,20 @@ public class RpcProxy {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RpcProxy.class);
     @SuppressWarnings("unchecked")
-    public static <T> T create(Class<T> clazz){
+    public static <T> T create(Class<T> clazz, String serviceName){
         /*
             动态代理
             对调用的方法生成代理，代理方法中通过发送RPC请求来获取返回值
          */
         Object proxyInstance = Proxy.newProxyInstance(clazz.getClassLoader(), new Class[]{clazz}, (proxy, method, args) -> {
-            /*
-                创建RPC（Netty）客户端
-                目前写死了服务地址，之后会使用Zookeeper获取服务地址
-             */
-            RpcClient client = new RpcClient("192.168.154.1", 8000);
+            String address = ZookeeperServiceDiscovery.getServiceAddress(serviceName);
+            if(StringUtil.isNullOrEmpty(address)){
+                throw new RuntimeException("无法找到服务实现");
+            }
+            int split = address.indexOf(":");
+            int port = Integer.parseInt(address.substring(split + 1));
+
+            RpcClient client = new RpcClient(address.substring(0, split), port);
             // 创建RPC请求
             RpcRequest request = new RpcRequest();
             // 服务接口
