@@ -2,7 +2,8 @@ package com.jay.rpc;
 
 import com.jay.rpc.annotation.RpcService;
 import com.jay.rpc.discovery.ServiceMapper;
-import com.jay.rpc.discovery.ZookeeperServiceDiscovery;
+import com.jay.rpc.registry.IRegistry;
+import com.jay.rpc.registry.impl.ZooKeeperRegistry;
 import com.jay.rpc.handler.RpcDecoder;
 import com.jay.rpc.handler.RpcEncoder;
 import com.jay.rpc.handler.RpcRequestHandler;
@@ -14,7 +15,6 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -23,7 +23,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import javax.annotation.PostConstruct;
-import java.io.IOException;
+import javax.annotation.Resource;
 import java.net.InetAddress;
 import java.util.Map;
 import java.util.Set;
@@ -48,6 +48,9 @@ public class RpcServer implements ApplicationContextAware {
     private String applicationName;
 
     private ApplicationContext context;
+
+    @Resource
+    private IRegistry serviceRegistry;
 
     /**
      * 初始化Netty服务器
@@ -91,7 +94,7 @@ public class RpcServer implements ApplicationContextAware {
             InetAddress localHost = InetAddress.getLocalHost();
             String host = localHost.getHostAddress() + ":" + port;
             // 注册到Zookeeper
-            ZookeeperServiceDiscovery.registerService(applicationName, host);
+            serviceRegistry.registerService(applicationName, host);
             logger.info("服务注册成功，服务名称：{}", applicationName);
 
             int serviceCount = doServiceScan();
@@ -110,10 +113,8 @@ public class RpcServer implements ApplicationContextAware {
                     logger.info("RPC服务启动失败");
                 }
             }
-        }catch (KeeperException e){
-            logger.error("服务注册异常", e);
-        } catch (InterruptedException | IOException e) {
-            logger.error("服务器启动出现异常", e);
+        }catch (Exception e){
+            logger.error("服务启动异常", e);
         }
     }
 
