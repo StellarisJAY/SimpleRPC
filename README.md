@@ -1,4 +1,11 @@
-# 简易RPC框架
+# 简易RPC框架（过时）
+
+## 此项目已迁移
+
+新项目地址：https://github.com/StellarisJAY/SimpleRPC-NEW
+
+- 更新项目结构，添加了两个案例模块
+
 ## 目标
 1、完成Spring整合   √
 
