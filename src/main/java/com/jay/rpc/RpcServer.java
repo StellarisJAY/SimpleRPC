@@ -18,7 +18,6 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -94,13 +93,22 @@ public class RpcServer implements ApplicationContextAware {
             // 注册到Zookeeper
             ZookeeperServiceDiscovery.registerService(applicationName, host);
             logger.info("服务注册成功，服务名称：{}", applicationName);
-            // 启动服务器
-            ChannelFuture channelFuture = serverBootstrap.bind(Integer.parseInt(port)).sync();
-            if(channelFuture.isSuccess()){
-               logger.info("RPC服务启动成功，服务地址:{}", host);
-            }
-            else{
-                logger.info("RPC服务启动失败");
+
+            int serviceCount = doServiceScan();
+            logger.info("接口实现类扫描完成，一共扫描到：{} 个服务实现类Bean", serviceCount);
+
+            /*
+                如果没有扫描到服务实现类，表示该应用只作为客户端，不必启动服务器
+             */
+            if(serviceCount != 0){
+                // 启动服务器
+                ChannelFuture channelFuture = serverBootstrap.bind(Integer.parseInt(port)).sync();
+                if(channelFuture.isSuccess()){
+                    logger.info("RPC服务启动成功，服务地址:{}", host);
+                }
+                else{
+                    logger.info("RPC服务启动失败");
+                }
             }
         }catch (KeeperException e){
             logger.error("服务注册异常", e);
@@ -118,16 +126,27 @@ public class RpcServer implements ApplicationContextAware {
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
         if(applicationContext != null){
             this.context = applicationContext;
+        }
+    }
+
+    /**
+     * 扫描服务实现类
+     * @return 服务Bean数量
+     */
+    private int doServiceScan(){
+        if(this.context != null){
+            // 获取有@RpcService的Bean
             Map<String, Object> serviceImpls = context.getBeansWithAnnotation(RpcService.class);
+            // 遍历，将这些Bean放入ServiceMapper
             Set<Map.Entry<String, Object>> entries = serviceImpls.entrySet();
             for (Map.Entry<String, Object> entry : entries) {
                 Object bean = entry.getValue();
                 Class<?>[] interfaces = bean.getClass().getInterfaces();
                 ServiceMapper.put(interfaces[0], bean);
             }
-
-            logger.info("接口实现类扫描完成，一共扫描到：{} 个服务实现类Bean", entries.size());
+            return entries.size();
         }
+        return 0;
     }
 
     public void setPort(String port) {
